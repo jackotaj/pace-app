@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+/* ── Pace design tokens (from DESIGN_SPEC §1) ── */
+@theme inline {
+  /* neutrals */
+  --color-ink: #0d0e10;
+  --color-paper: #ffffff;
+  --color-cream: #f7f5ef;
+  --color-line: #e6e3da;
+  --color-line2: #d8d4c7;
+  --color-mute: #6b6862;
+  --color-mute2: #9a968d;
+
+  /* pace signal */
+  --color-green: #17a058;
+  --color-green-soft: #e5f5ec;
+  --color-red: #d43f3a;
+  --color-red-soft: #fbe9e7;
+  --color-amber: #d88a1a;
+  --color-amber-soft: #faefdc;
+
+  /* trophy / streak */
+  --color-gold: #b8842a;
+  --color-gold-soft: #f4ebd6;
+
+  /* accent */
+  --color-accent: #0d0e10;
+
+  /* font families (mapped from next/font CSS vars on <html>) */
+  --font-display: var(--font-archivo);
+  --font-sans: var(--font-inter-tight);
+  --font-mono: var(--font-jetbrains);
+}
+
+html,
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-inter-tight), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* tabular-nums helper — spec §10.3 */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Progress bar transition — spec §3 */
+.bar-fill {
+  transition: width 0.45s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* Hide scrollbars on horizontal scrollers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Confetti */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-20px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(120vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* Live pulse */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.live-pulse { animation: live-pulse 1.2s infinite; }
