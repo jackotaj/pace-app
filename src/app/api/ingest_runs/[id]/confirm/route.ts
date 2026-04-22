@@ -3,20 +3,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireUser, UnauthorizedError } from "@/lib/supabase/tenancy";
-
-interface PreviewRow {
-  row: number;
-  rep_id?: string;
-  sold_at: string | null;
-  sold_at_date: string | null;
-  vin: string | null;
-  vehicle: string;
-  gross: number;
-  kind: "new" | "used";
-  source: string;
-  duplicate: boolean;
-  errors: string[];
-}
+import type { SaleCandidate } from "@/lib/ingest";
 
 export async function POST(
   _req: Request,
@@ -36,7 +23,6 @@ export async function POST(
     if (run.status !== "previewing")
       return NextResponse.json({ error: `Run is ${run.status}` }, { status: 400 });
 
-    // Verify caller manages this store
     const { data: memberships } = await admin
       .from("memberships")
       .select("role, store_id, org_id")
@@ -55,9 +41,17 @@ export async function POST(
     );
     if (!ok) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-    const rows = (run.preview as PreviewRow[]) ?? [];
+    const rows = (run.preview as SaleCandidate[]) ?? [];
     const toInsert = rows
-      .filter((r) => r.errors.length === 0 && !r.duplicate && r.rep_id && r.sold_at && r.sold_at_date)
+      .filter(
+        (r) =>
+          !r.skip_reason &&
+          !r.duplicate &&
+          r.errors.length === 0 &&
+          r.rep_id &&
+          r.sold_at &&
+          r.sold_at_date,
+      )
       .map((r) => ({
         rep_id: r.rep_id!,
         store_id: run.store_id,
@@ -66,15 +60,17 @@ export async function POST(
         vin: r.vin,
         vehicle: r.vehicle,
         gross: r.gross,
+        front_gross: r.front_gross,
+        back_gross: r.back_gross,
         kind: r.kind,
         source: r.source as never,
+        deal_number: r.deal_number,
+        sale_id: r.sale_id,
         ingest_run_id: run.id,
       }));
 
     let inserted = 0;
     if (toInsert.length > 0) {
-      // Plain insert; preview already filtered duplicates. Partial unique index will
-      // reject races — caller can retry.
       const { data, error } = await admin
         .from("sales")
         .insert(toInsert)
