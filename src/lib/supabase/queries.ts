@@ -2,8 +2,9 @@
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import {
+  buildMonth,
   computePace,
-  MONTH,
+  type MonthCtx,
   type Rep,
   type Ratios,
   type PaceResult,
@@ -19,18 +20,24 @@ export interface StoreSnapshot {
   storeId: string;
   storeName: string;
   storeTimezone: string;
+  storeCity: string | null;
+  storeState: string | null;
+  month: MonthCtx;
   reps: RepWithPace[];
   yourRepId: string | null;
+  yourRole: "admin" | "manager" | "rep" | null;
+  repCount: number;
 }
 
-const MONTH_START = new Date(`${MONTH.label.split(" ")[1]}-${monthNum(MONTH.label)}-01T00:00:00Z`);
-function monthNum(label: string): string {
-  // "APR 2026" → "04"
-  const m: Record<string, string> = {
-    JAN: "01", FEB: "02", MAR: "03", APR: "04", MAY: "05", JUN: "06",
-    JUL: "07", AUG: "08", SEP: "09", OCT: "10", NOV: "11", DEC: "12",
-  };
-  return m[label.split(" ")[0]] ?? "04";
+function todayInTz(tz: string): string {
+  // Returns YYYY-MM-DD for the current day in the given timezone.
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return fmt.format(new Date());
 }
 
 export async function loadMyStoreSnapshot(): Promise<StoreSnapshot | null> {
@@ -40,16 +47,34 @@ export async function loadMyStoreSnapshot(): Promise<StoreSnapshot | null> {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  // Find the first store this user can see (managers → their org's stores; reps → their store)
-  const { data: stores } = await supabase
-    .from("stores")
-    .select("id, name, timezone")
-    .limit(1);
+  const admin = createServiceClient();
 
-  const store = stores?.[0];
-  if (!store) return null;
+  // Find the user's memberships — prefer store-scoped (rep) over org-scoped (manager).
+  const { data: memberships } = await admin
+    .from("memberships")
+    .select("role, org_id, store_id")
+    .eq("user_id", user.id);
 
-  return await loadStoreSnapshotById(store.id, user.id);
+  if (!memberships || memberships.length === 0) return null;
+
+  // Prefer a specific store membership. Otherwise pick any store in the user's org.
+  const withStore = memberships.find((m) => m.store_id);
+  let storeId: string | null = withStore?.store_id ?? null;
+  if (!storeId) {
+    const orgIds = Array.from(new Set(memberships.map((m) => m.org_id).filter(Boolean)));
+    if (orgIds.length === 0) return null;
+    const { data: stores } = await admin
+      .from("stores")
+      .select("id")
+      .in("org_id", orgIds)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true })
+      .limit(1);
+    storeId = stores?.[0]?.id ?? null;
+  }
+  if (!storeId) return null;
+
+  return await loadStoreSnapshotById(storeId, user.id);
 }
 
 export async function loadStoreSnapshotById(
@@ -63,10 +88,29 @@ export async function loadStoreSnapshotById(
 
   const { data: store } = await supabase
     .from("stores")
-    .select("id, name, timezone")
+    .select("id, name, timezone, city, state, org_id")
     .eq("id", storeId)
     .maybeSingle();
   if (!store) return null;
+
+  // Compute current month in store's timezone.
+  const month = buildMonth(new Date(), store.timezone);
+  const today = todayInTz(store.timezone);
+  const monthStartDate = today.slice(0, 7) + "-01";
+  const monthStartISO = `${monthStartDate}T00:00:00Z`;
+
+  // Determine caller's role in this store
+  let yourRole: "admin" | "manager" | "rep" | null = null;
+  if (userId) {
+    const { data: m } = await supabase
+      .from("memberships")
+      .select("role, store_id")
+      .eq("user_id", userId)
+      .eq("org_id", store.org_id);
+    const repMem = m?.find((x) => x.store_id === storeId && x.role === "rep");
+    const mgrMem = m?.find((x) => x.role === "admin" || x.role === "manager");
+    yourRole = repMem ? "rep" : mgrMem ? (mgrMem.role as "admin" | "manager") : null;
+  }
 
   const { data: reps } = await supabase
     .from("reps")
@@ -79,20 +123,27 @@ export async function loadStoreSnapshotById(
 
   const repIds = (reps ?? []).map((r) => r.id);
   if (repIds.length === 0) {
-    return { storeId: store.id, storeName: store.name, storeTimezone: store.timezone, reps: [], yourRepId: null };
+    return {
+      storeId: store.id,
+      storeName: store.name,
+      storeTimezone: store.timezone,
+      storeCity: store.city ?? null,
+      storeState: store.state ?? null,
+      month,
+      reps: [],
+      yourRepId: null,
+      yourRole,
+      repCount: 0,
+    };
   }
 
   // Sales this month
-  const monthStartISO = MONTH_START.toISOString();
   const { data: sales } = await supabase
     .from("sales")
     .select("rep_id, gross, kind, sold_at_date")
     .eq("store_id", storeId)
     .is("deleted_at", null)
     .gte("sold_at", monthStartISO);
-
-  // Most recent activity row per rep (today's if present)
-  const today = new Date().toISOString().slice(0, 10);
   const { data: activities } = await supabase
     .from("activities")
     .select("rep_id, activity_date, calls, texts, appts_set, appts_shown")
@@ -126,7 +177,13 @@ export async function loadStoreSnapshotById(
     }
   }
 
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  // yesterday in store tz
+  const yDate = new Date(Date.parse(`${today}T12:00:00Z`) - 24 * 60 * 60 * 1000);
+  const yesterday = todayInTz(store.timezone)
+    ? new Date(yDate.getUTCFullYear(), yDate.getUTCMonth(), yDate.getUTCDate())
+        .toISOString()
+        .slice(0, 10)
+    : yDate.toISOString().slice(0, 10);
 
   const repsWithPace: RepWithPace[] = (reps ?? []).map((r) => {
     const sAgg = salesByRep.get(r.id);
@@ -171,17 +228,21 @@ export async function loadStoreSnapshotById(
     };
 
     const ratios: Ratios = (r.ratios as Ratios) ?? { close: 0.2, show: 0.65, set: 0.15, contact: 0.3 };
-    return { ...rep, pace: computePace(rep, MONTH, ratios) };
+    return { ...rep, pace: computePace(rep, month, ratios) };
   });
 
   // Determine "you" — the rep row whose user_id == authed userId, if any.
-  // If manager viewing, there may be no self-rep, so yourRepId stays null and the UI picks first.
   const you = repsWithPace.find((r) => r.isYou);
   return {
     storeId: store.id,
     storeName: store.name,
     storeTimezone: store.timezone,
+    storeCity: store.city ?? null,
+    storeState: store.state ?? null,
+    month,
     reps: repsWithPace,
     yourRepId: you?.id ?? null,
+    yourRole,
+    repCount: repsWithPace.length,
   };
 }

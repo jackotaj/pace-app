@@ -3,11 +3,11 @@
 
 "use client";
 
-import { usePaceStore, useYourRep } from "@/lib/store";
+import { usePaceStore, useStoreCtx, useYourRep } from "@/lib/store";
 import {
+  buildMonth,
   computePace,
   fmtUSDk,
-  MONTH,
   rankReps,
   type Rep,
   type ActivityToday,
@@ -21,7 +21,7 @@ import {
 } from "@/components/primitives";
 import type { RepTab } from "@/components/primitives";
 
-function RepHeader({ rep }: { rep: Rep }) {
+function RepHeader({ rep, month }: { rep: Rep; month: { label: string; day: number; daysTotal: number } }) {
   return (
     <div
       style={{
@@ -42,7 +42,7 @@ function RepHeader({ rep }: { rep: Rep }) {
             textTransform: "uppercase",
           }}
         >
-          {MONTH.label} · Day {MONTH.day} of {MONTH.daysTotal}
+          {month.label} · Day {month.day} of {month.daysTotal}
         </div>
         <div
           style={{
@@ -206,13 +206,17 @@ export function RepHomeScoreboard({
   onSwitchTab?: (t: RepTab) => void;
 }) {
   const yourRep = useYourRep();
+  const ctx = useStoreCtx();
   const addSale = usePaceStore((s) => s.addSale);
-  const p = computePace(yourRep);
+  if (!yourRep) return null;
+  const month = buildMonth(new Date(), ctx?.storeTimezone);
+  const p = computePace(yourRep, month);
   const a = yourRep.activityToday;
+  const isDemo = !ctx; // when server provides no ctx, we're in the unauthed demo mode
 
   return (
     <>
-      <RepHeader rep={yourRep} />
+      <RepHeader rep={yourRep} month={month} />
 
       {/* HERO — dark pace card */}
       <div
@@ -340,7 +344,7 @@ export function RepHomeScoreboard({
               letterSpacing: -0.2,
             }}
           >
-            back-solved · {MONTH.daysRemaining}d left
+            back-solved · {month.daysRemaining}d left
           </span>
         </div>
         <FunnelSteps daily={p.daily} actual={a} />
@@ -371,16 +375,17 @@ export function RepHomeScoreboard({
         {Ic.zap(16)} Log activity
       </button>
 
-      <div style={{ display: "flex", gap: 10, margin: "12px 18px 0" }}>
+      <div style={{ display: "flex", gap: 10, margin: "12px 18px 24px" }}>
         <StreakChip streak={yourRep.streak} />
         <RankChip onClick={() => onSwitchTab?.("board")} />
       </div>
 
-      {/* dev trigger for the celebration state */}
+      {/* Demo trigger — only in unauthed demo mode (no real store ctx present). */}
+      {isDemo && (
       <button
         onClick={() => addSale(yourRep.id, 2400, "used")}
         style={{
-          margin: "14px 18px 24px",
+          margin: "0 18px 24px",
           width: "calc(100% - 36px)",
           height: 42,
           background: "transparent",
@@ -397,6 +402,7 @@ export function RepHomeScoreboard({
       >
         Demo: log a sale
       </button>
+      )}
     </>
   );
 }
@@ -494,12 +500,15 @@ export function RepHomeFunnel({
   onSwitchTab?: (t: RepTab) => void;
 }) {
   const yourRep = useYourRep();
-  const p = computePace(yourRep);
+  const ctx = useStoreCtx();
+  if (!yourRep) return null;
+  const month = buildMonth(new Date(), ctx?.storeTimezone);
+  const p = computePace(yourRep, month);
   const a = yourRep.activityToday;
 
   return (
     <>
-      <RepHeader rep={yourRep} />
+      <RepHeader rep={yourRep} month={month} />
 
       <div
         style={{
@@ -715,12 +724,15 @@ export function RepHomeCardStack({
   onSwitchTab?: (t: RepTab) => void;
 }) {
   const yourRep = useYourRep();
-  const p = computePace(yourRep);
+  const ctx = useStoreCtx();
+  if (!yourRep) return null;
+  const month = buildMonth(new Date(), ctx?.storeTimezone);
+  const p = computePace(yourRep, month);
   const a = yourRep.activityToday;
 
   return (
     <>
-      <RepHeader rep={yourRep} />
+      <RepHeader rep={yourRep} month={month} />
 
       <div style={{ padding: "0 18px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div style={{ background: "#0d0e10", color: "#fff", borderRadius: 16, padding: "16px 16px 14px" }}>

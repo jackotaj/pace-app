@@ -76,14 +76,44 @@ export const RATIOS: Ratios = {
   contact: 0.3,
 };
 
-// Scenario month: April 2026, day 21, 30-day month, 10 days remain.
-export const MONTH: MonthCtx = {
-  label: "APR 2026",
-  day: 21,
-  daysTotal: 30,
-  daysRemaining: 10,
-  daysElapsed: 20,
-};
+// Derived from the current date in the store's timezone. For client-side rendering
+// where tz isn't known, we pass no tz and fall back to local tz (good enough for v1).
+const MONTH_LABELS = [
+  "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
+];
+
+export function buildMonth(now: Date = new Date(), tz?: string): MonthCtx {
+  // Get year/month/day in the given timezone (or local if not provided).
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = Object.fromEntries(
+    fmt.formatToParts(now).map((p) => [p.type, p.value]),
+  );
+  const year = Number(parts.year);
+  const monthIdx = Number(parts.month) - 1;
+  const day = Number(parts.day);
+  // Last day of month
+  const daysTotal = new Date(Date.UTC(year, monthIdx + 1, 0)).getUTCDate();
+  const daysElapsed = Math.max(1, day); // day-of-month, inclusive
+  const daysRemaining = Math.max(1, daysTotal - day + 1); // including today
+
+  return {
+    label: `${MONTH_LABELS[monthIdx]} ${year}`,
+    day,
+    daysTotal,
+    daysRemaining,
+    daysElapsed,
+  };
+}
+
+// Back-compat default export — dynamic; recomputed on module load.
+// (Server-rendered pages always get fresh evaluation; client reads snapshot.)
+export const MONTH: MonthCtx = buildMonth();
 
 // Sample roster — spec: "You" is Todd Ramirez, behind pace.
 export const INITIAL_REPS: Rep[] = [

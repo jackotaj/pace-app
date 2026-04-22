@@ -313,25 +313,27 @@ function LoginForm() {
               </form>
             )}
 
-            <div style={{ marginTop: 16, textAlign: "center" }}>
-              <button
-                onClick={() => {
-                  setMode(mode === "email" ? "password" : "email");
-                  setError(null);
-                }}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#6b6862",
-                  fontSize: 12,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                }}
-              >
-                {mode === "email" ? "Use pilot password instead" : "Use magic link instead"}
-              </button>
-            </div>
+            {process.env.NEXT_PUBLIC_SHOW_PILOT_PASSWORD === "1" && (
+              <div style={{ marginTop: 16, textAlign: "center" }}>
+                <button
+                  onClick={() => {
+                    setMode(mode === "email" ? "password" : "email");
+                    setError(null);
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "#6b6862",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
+                >
+                  {mode === "email" ? "Use pilot password instead" : "Use magic link instead"}
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

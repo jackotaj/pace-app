@@ -32,7 +32,7 @@ export async function POST(
 ) {
   try {
     const { id } = await ctx.params;
-    const { admin, store } = await requireManagerOfStore(id);
+    const { admin, store, user } = await requireManagerOfStore(id);
     const body = (await req.json()) as { reps?: RosterEntry[] };
 
     if (!body.reps || !Array.isArray(body.reps) || body.reps.length === 0) {
@@ -73,6 +73,27 @@ export async function POST(
         .select("id, name, email");
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       results.push(...(data ?? []));
+    }
+
+    // Auto-link the caller's own rep row (if their email matches one of the pasted reps).
+    // Also grant them a store-scoped 'rep' membership so they can log activity for themselves.
+    const userEmail = user.email?.toLowerCase();
+    if (userEmail) {
+      const selfRep = results.find((r) => r.email === userEmail);
+      if (selfRep) {
+        await admin.from("reps").update({ user_id: user.id }).eq("id", selfRep.id);
+        await admin
+          .from("memberships")
+          .upsert(
+            {
+              user_id: user.id,
+              org_id: store.org_id,
+              store_id: store.id,
+              role: "rep",
+            },
+            { onConflict: "user_id,org_id,store_id" },
+          );
+      }
     }
 
     return NextResponse.json({ data: { reps: results, count: results.length } });

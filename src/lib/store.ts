@@ -12,14 +12,26 @@ export interface Toast {
   msg: string;
 }
 
+export interface StoreCtx {
+  storeId: string;
+  storeName: string;
+  storeTimezone: string;
+  storeCity: string | null;
+  storeState: string | null;
+  yourRole: "admin" | "manager" | "rep" | null;
+  repCount: number;
+}
+
 interface PaceStore {
   reps: Rep[];
   you: RepId;
   toast: Toast | null;
   confetti: boolean;
+  ctx: StoreCtx | null;
 
   setYou: (id: RepId) => void;
   setReps: (reps: Rep[]) => void;
+  setCtx: (ctx: StoreCtx) => void;
 
   patchRep: (id: RepId, patch: Partial<Rep>) => void;
   logActivity: (id: RepId, delta: Partial<ActivityToday>) => void;
@@ -34,9 +46,11 @@ export const usePaceStore = create<PaceStore>((set, get) => ({
   you: "you",
   toast: null,
   confetti: false,
+  ctx: null,
 
   setYou: (id) => set({ you: id }),
   setReps: (reps) => set({ reps }),
+  setCtx: (ctx) => set({ ctx }),
 
   patchRep: (id, patch) =>
     set((s) => ({
@@ -98,5 +112,8 @@ export const usePaceStore = create<PaceStore>((set, get) => ({
 export const useYourRep = () => {
   const reps = usePaceStore((s) => s.reps);
   const you = usePaceStore((s) => s.you);
+  // May legitimately be undefined (empty store). Consumers must handle.
   return reps.find((r) => r.id === you) ?? reps[0];
 };
+
+export const useStoreCtx = () => usePaceStore((s) => s.ctx);

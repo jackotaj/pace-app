@@ -2,7 +2,7 @@
 
 "use client";
 
-import { usePaceStore, useYourRep } from "@/lib/store";
+import { usePaceStore, useStoreCtx, useYourRep } from "@/lib/store";
 import { Avatar, Ic, SectionHead } from "@/components/primitives";
 
 const ALL_BADGES = [
@@ -18,6 +18,12 @@ export function ProfileTab() {
   const yourRep = useYourRep();
   const reps = usePaceStore((s) => s.reps);
   const setYou = usePaceStore((s) => s.setYou);
+  const ctx = useStoreCtx();
+  // Demo switcher is strictly for the unauthed mock-data view. Once a real user
+  // loaded a real store snapshot (ctx !== null), we hide it so reps can't
+  // impersonate each other.
+  const showDemoSwitcher = !ctx;
+  if (!yourRep) return null;
 
   return (
     <>
@@ -142,7 +148,8 @@ export function ProfileTab() {
         </div>
       </div>
 
-      {/* Demo rep switcher (prototype-only, strip in production) */}
+      {/* Demo rep switcher — only shown in unauthed demo mode. */}
+      {showDemoSwitcher && (
       <div style={{ margin: "0 18px 18px", padding: "14px 14px", background: "#f7f5ef", borderRadius: 12 }}>
         <SectionHead style={{ marginBottom: 10 }}>Demo · switch rep</SectionHead>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -167,6 +174,34 @@ export function ProfileTab() {
           ))}
         </div>
       </div>
+      )}
+
+      {/* Sign out — always available for real users */}
+      {!showDemoSwitcher && (
+        <div style={{ margin: "0 18px 18px" }}>
+          <form action="/auth/signout" method="POST">
+            <button
+              type="submit"
+              style={{
+                width: "100%",
+                padding: "12px",
+                background: "transparent",
+                color: "#6b6862",
+                border: "1px solid #e6e3da",
+                borderRadius: 10,
+                fontFamily: "var(--font-archivo)",
+                fontWeight: 600,
+                fontSize: 12,
+                letterSpacing: 1,
+                textTransform: "uppercase",
+                cursor: "pointer",
+              }}
+            >
+              Sign out
+            </button>
+          </form>
+        </div>
+      )}
     </>
   );
 }

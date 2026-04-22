@@ -4,8 +4,9 @@
 
 import { useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { usePaceStore } from "@/lib/store";
-import { computePace, fmtUSDk, MONTH, type Rep } from "@/lib/pace";
+import { usePathname } from "next/navigation";
+import { usePaceStore, useStoreCtx } from "@/lib/store";
+import { buildMonth, computePace, fmtUSDk, type Rep } from "@/lib/pace";
 import {
   Avatar,
   Confetti,
@@ -51,6 +52,84 @@ const ghostBtn: CSSProperties = {
   textTransform: "uppercase",
   cursor: "pointer",
 };
+
+function EmptyRosterBanner() {
+  return (
+    <div
+      style={{
+        background: "#fff",
+        border: "1px dashed #d8d4c7",
+        borderRadius: 14,
+        padding: "22px 24px",
+        marginBottom: 22,
+        display: "flex",
+        alignItems: "center",
+        gap: 18,
+        flexWrap: "wrap",
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            fontFamily: "var(--font-archivo)",
+            fontSize: 18,
+            fontWeight: 800,
+            letterSpacing: -0.4,
+            marginBottom: 4,
+          }}
+        >
+          Start by adding your roster.
+        </div>
+        <div style={{ fontSize: 13, color: "#6b6862", lineHeight: 1.5 }}>
+          Paste names + emails + monthly goals. Pace back-solves each rep&apos;s daily targets from there.
+        </div>
+      </div>
+      <Link href="/app/manager/roster" style={{ ...primaryBtn, textDecoration: "none" }}>
+        Paste roster →
+      </Link>
+    </div>
+  );
+}
+
+function ManagerNav() {
+  const path = usePathname();
+  const items: { id: string; label: string; icon: (s?: number) => React.ReactNode; href: string }[] = [
+    { id: "team", label: "Team", icon: Ic.trophy, href: "/app/manager" },
+    { id: "roster", label: "Roster", icon: Ic.flame, href: "/app/manager/roster" },
+    { id: "ingest", label: "Ingest sales", icon: Ic.arrowU, href: "/app/manager/ingest" },
+  ];
+  return (
+    <>
+      {items.map((item) => {
+        const active =
+          item.href === "/app/manager"
+            ? path === "/app/manager"
+            : path?.startsWith(item.href) ?? false;
+        return (
+          <Link
+            key={item.id}
+            href={item.href}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "8px 10px",
+              borderRadius: 8,
+              background: active ? "#f7f5ef" : "transparent",
+              color: active ? "#0d0e10" : "#6b6862",
+              fontSize: 13,
+              fontWeight: 500,
+              marginBottom: 2,
+              textDecoration: "none",
+            }}
+          >
+            {item.icon(15)} {item.label}
+          </Link>
+        );
+      })}
+    </>
+  );
+}
 
 function KpiCard({
   label,
@@ -174,11 +253,13 @@ export function ManagerDashboard() {
   const addSale = usePaceStore((s) => s.addSale);
   const toast = usePaceStore((s) => s.toast);
   const confetti = usePaceStore((s) => s.confetti);
+  const ctx = useStoreCtx();
 
-  const [selectedId, setSelectedId] = useState("you");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortKey>("pace");
 
-  const withPace = reps.map((r) => ({ ...r, pace: computePace(r) }));
+  const month = buildMonth(new Date(), ctx?.storeTimezone);
+  const withPace = reps.map((r) => ({ ...r, pace: computePace(r, month) }));
   const sorted = [...withPace].sort((a, b) => {
     if (sortBy === "pace") return a.pace.paceDelta - b.pace.paceDelta;
     if (sortBy === "sold") return b.sold - a.sold;
@@ -199,6 +280,7 @@ export function ManagerDashboard() {
   const coldCount = withPace.filter((r) => r.daysSinceSale >= 4).length;
 
   const selected = withPace.find((r) => r.id === selectedId) || withPace[0];
+  const hasReps = withPace.length > 0;
 
   return (
     <div
@@ -253,35 +335,7 @@ export function ManagerDashboard() {
             </div>
           </div>
         </div>
-        {[
-          { id: "team", label: "Team", icon: Ic.trophy, href: "/app/manager", active: true },
-          { id: "roster", label: "Roster", icon: Ic.flame, href: "/app/manager/roster", active: false },
-          { id: "ingest", label: "Ingest sales", icon: Ic.arrowU, href: "/app/manager/ingest", active: false },
-          { id: "coach", label: "Coach", icon: Ic.msg, href: "#", active: false },
-          { id: "deals", label: "Deals", icon: Ic.car, href: "#", active: false },
-          { id: "setup", label: "Settings", icon: Ic.cal, href: "#", active: false },
-        ].map((item) => (
-          <Link
-            key={item.id}
-            href={item.href}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "8px 10px",
-              borderRadius: 8,
-              background: item.active ? "#f7f5ef" : "transparent",
-              color: item.active ? "#0d0e10" : "#6b6862",
-              fontSize: 13,
-              fontWeight: 500,
-              marginBottom: 2,
-              cursor: "pointer",
-              textDecoration: "none",
-            }}
-          >
-            {item.icon(15)} {item.label}
-          </Link>
-        ))}
+        <ManagerNav />
         <div style={{ marginTop: "auto", paddingTop: 20 }}>
           <div style={{ padding: "10px 10px", background: "#f7f5ef", borderRadius: 8 }}>
             <div
@@ -295,9 +349,41 @@ export function ManagerDashboard() {
             >
               STORE
             </div>
-            <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>Greenfield Auto</div>
-            <div style={{ fontSize: 11, color: "#6b6862", marginTop: 1 }}>Boise, ID · 8 reps</div>
+            <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>
+              {ctx?.storeName ?? "Greenfield Auto"}
+            </div>
+            <div style={{ fontSize: 11, color: "#6b6862", marginTop: 1 }}>
+              {ctx ? (
+                <>
+                  {[ctx.storeCity, ctx.storeState].filter(Boolean).join(", ") || "—"} · {ctx.repCount} rep
+                  {ctx.repCount === 1 ? "" : "s"}
+                </>
+              ) : (
+                <>Boise, ID · 8 reps</>
+              )}
+            </div>
           </div>
+          <form action="/auth/signout" method="POST" style={{ marginTop: 8 }}>
+            <button
+              type="submit"
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                borderRadius: 8,
+                border: "1px solid #e6e3da",
+                background: "transparent",
+                color: "#6b6862",
+                fontSize: 11,
+                fontFamily: "var(--font-archivo)",
+                fontWeight: 600,
+                letterSpacing: 1,
+                textTransform: "uppercase",
+                cursor: "pointer",
+              }}
+            >
+              Sign out
+            </button>
+          </form>
         </div>
       </div>
 
@@ -324,7 +410,7 @@ export function ManagerDashboard() {
                 textTransform: "uppercase",
               }}
             >
-              {MONTH.label} · Day {MONTH.day} · {MONTH.daysRemaining} days left
+              {month.label} · Day {month.day} · {month.daysRemaining} days left
             </div>
             <div
               style={{
@@ -339,10 +425,16 @@ export function ManagerDashboard() {
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button style={ghostBtn}>{Ic.arrowD(13)} Export</button>
-            <button style={primaryBtn}>Set April goals</button>
+            <Link href="/app/manager/ingest" style={{ ...ghostBtn, textDecoration: "none" }}>
+              {Ic.arrowU(13)} Upload sales
+            </Link>
+            <Link href="/app/manager/roster" style={{ ...primaryBtn, textDecoration: "none" }}>
+              Edit roster
+            </Link>
           </div>
         </div>
+
+        {!hasReps && <EmptyRosterBanner />}
 
         {/* KPI cards */}
         <div
@@ -352,20 +444,24 @@ export function ManagerDashboard() {
           <KpiCard
             label="Units · team"
             value={`${totalSold}`}
-            sub={`/${totalGoal} goal · ${Math.round((totalSold / totalGoal) * 100)}%`}
-            bar={totalSold / totalGoal}
+            sub={
+              totalGoal > 0
+                ? `/${totalGoal} goal · ${Math.round((totalSold / totalGoal) * 100)}%`
+                : "set a goal →"
+            }
+            bar={totalGoal > 0 ? totalSold / totalGoal : undefined}
           />
           <KpiCard
             label="Gross · team"
             value={fmtUSDk(totalGross)}
-            sub={`of ${fmtUSDk(totalGrossGoal)}`}
-            bar={totalGross / totalGrossGoal}
+            sub={totalGrossGoal > 0 ? `of ${fmtUSDk(totalGrossGoal)}` : "set a goal →"}
+            bar={totalGrossGoal > 0 ? totalGross / totalGrossGoal : undefined}
           />
           <KpiCard
             label="Behind pace"
             value={behindCount}
-            sub={`${aheadCount} ahead · ${reps.length - behindCount - aheadCount} on pace`}
-            accent="#d43f3a"
+            sub={`${aheadCount} ahead · ${Math.max(0, reps.length - behindCount - aheadCount)} on pace`}
+            accent={behindCount > 0 ? "#d43f3a" : undefined}
           />
           <KpiCard
             label="Cold reps"
@@ -453,6 +549,11 @@ export function ManagerDashboard() {
                 </div>
               ))}
             </div>
+            {sorted.length === 0 && (
+              <div style={{ padding: "28px 16px", textAlign: "center", color: "#9a968d", fontSize: 13 }}>
+                No reps yet — <Link href="/app/manager/roster" style={{ color: "#0d0e10", textDecoration: "underline" }}>add your roster</Link>.
+              </div>
+            )}
             {sorted.map((r) => {
               const isSel = r.id === selectedId;
               return (
@@ -531,23 +632,38 @@ export function ManagerDashboard() {
           </div>
 
           {/* Detail panel */}
-          <DetailPanel
-            selected={selected}
-            onLogSale={async () => {
-              // Optimistic local update (fires confetti + toast via store).
-              addSale(selected.id, 2200, "used");
-              // Persist to DB.
-              try {
-                await fetch("/api/sales", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ rep_id: selected.id, gross: 2200, kind: "used" }),
-                });
-              } catch {
-                /* optimistic — ignore network failure in mock mode */
-              }
-            }}
-          />
+          {selected ? (
+            <DetailPanel
+              selected={selected}
+              onLogSale={async () => {
+                addSale(selected.id, 2200, "used");
+                try {
+                  await fetch("/api/sales", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ rep_id: selected.id, gross: 2200, kind: "used" }),
+                  });
+                } catch {
+                  /* optimistic — ignore network failure in mock mode */
+                }
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px dashed #d8d4c7",
+                borderRadius: 14,
+                padding: "24px 18px",
+                alignSelf: "start",
+                color: "#9a968d",
+                fontSize: 13,
+                textAlign: "center",
+              }}
+            >
+              Select a rep to see their detail.
+            </div>
+          )}
         </div>
       </div>
 

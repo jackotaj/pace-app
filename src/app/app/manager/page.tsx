@@ -23,9 +23,22 @@ export default async function ManagerAppPage() {
   const snapshot = await loadMyStoreSnapshot();
   if (!snapshot) redirect("/app/onboard");
 
+  // Reps hitting /app/manager should just go to their rep home.
+  if (snapshot.yourRole === "rep") redirect("/app/rep");
+
+  const ctx = {
+    storeId: snapshot.storeId,
+    storeName: snapshot.storeName,
+    storeTimezone: snapshot.storeTimezone,
+    storeCity: snapshot.storeCity,
+    storeState: snapshot.storeState,
+    yourRole: snapshot.yourRole,
+    repCount: snapshot.repCount,
+  };
+
   return (
     <>
-      <StoreHydrator reps={snapshot.reps} yourRepId={snapshot.yourRepId} />
+      <StoreHydrator reps={snapshot.reps} yourRepId={snapshot.yourRepId} ctx={ctx} />
       <ManagerDashboard />
     </>
   );
