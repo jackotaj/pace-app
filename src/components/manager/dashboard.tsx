@@ -257,6 +257,7 @@ export function ManagerDashboard() {
         </div>
         {[
           { id: "team", label: "Team", icon: Ic.trophy, href: "/app/manager", active: true },
+          { id: "roster", label: "Roster", icon: Ic.flame, href: "/app/manager/roster", active: false },
           { id: "ingest", label: "Ingest sales", icon: Ic.arrowU, href: "/app/manager/ingest", active: false },
           { id: "coach", label: "Coach", icon: Ic.msg, href: "#", active: false },
           { id: "deals", label: "Deals", icon: Ic.car, href: "#", active: false },
