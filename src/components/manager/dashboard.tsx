@@ -3,6 +3,7 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
+import Link from "next/link";
 import { usePaceStore } from "@/lib/store";
 import { computePace, fmtUSDk, MONTH, type Rep } from "@/lib/pace";
 import {
@@ -255,14 +256,15 @@ export function ManagerDashboard() {
           </div>
         </div>
         {[
-          { id: "team", label: "Team", icon: Ic.trophy, active: true },
-          { id: "goals", label: "Goals", icon: Ic.zap, active: false },
-          { id: "coach", label: "Coach", icon: Ic.msg, active: false },
-          { id: "deals", label: "Deals", icon: Ic.car, active: false },
-          { id: "setup", label: "Settings", icon: Ic.cal, active: false },
+          { id: "team", label: "Team", icon: Ic.trophy, href: "/app/manager", active: true },
+          { id: "ingest", label: "Ingest sales", icon: Ic.arrowU, href: "/app/manager/ingest", active: false },
+          { id: "coach", label: "Coach", icon: Ic.msg, href: "#", active: false },
+          { id: "deals", label: "Deals", icon: Ic.car, href: "#", active: false },
+          { id: "setup", label: "Settings", icon: Ic.cal, href: "#", active: false },
         ].map((item) => (
-          <div
+          <Link
             key={item.id}
+            href={item.href}
             style={{
               display: "flex",
               alignItems: "center",
@@ -275,10 +277,11 @@ export function ManagerDashboard() {
               fontWeight: 500,
               marginBottom: 2,
               cursor: "pointer",
+              textDecoration: "none",
             }}
           >
             {item.icon(15)} {item.label}
-          </div>
+          </Link>
         ))}
         <div style={{ marginTop: "auto", paddingTop: 20 }}>
           <div style={{ padding: "10px 10px", background: "#f7f5ef", borderRadius: 8 }}>
@@ -529,7 +532,23 @@ export function ManagerDashboard() {
           </div>
 
           {/* Detail panel */}
-          <DetailPanel selected={selected} onLogSale={() => addSale(selected.id, 2200, "used")} />
+          <DetailPanel
+            selected={selected}
+            onLogSale={async () => {
+              // Optimistic local update (fires confetti + toast via store).
+              addSale(selected.id, 2200, "used");
+              // Persist to DB.
+              try {
+                await fetch("/api/sales", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ rep_id: selected.id, gross: 2200, kind: "used" }),
+                });
+              } catch {
+                /* optimistic — ignore network failure in mock mode */
+              }
+            }}
+          />
         </div>
       </div>
 
