@@ -14,6 +14,7 @@ import {
   SectionHead,
   Toast,
 } from "@/components/primitives";
+import { PaceMark } from "@/components/logo";
 
 type SortKey = "pace" | "sold" | "gross" | "activity";
 
@@ -223,23 +224,19 @@ export function ManagerDashboard() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
-          <div
-            style={{
-              width: 30,
-              height: 30,
-              background: "#0d0e10",
-              color: "#fff",
-              borderRadius: 7,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {Ic.zap(16)}
-          </div>
+          <PaceMark size={32} />
           <div>
-            <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 15, letterSpacing: -0.3 }}>
-              Pace
+            <div
+              style={{
+                fontFamily: "var(--font-archivo)",
+                fontWeight: 800,
+                fontSize: 18,
+                letterSpacing: -0.4,
+                color: "#02BFAB",
+                lineHeight: 1,
+              }}
+            >
+              pace
             </div>
             <div
               style={{
@@ -249,6 +246,7 @@ export function ManagerDashboard() {
                 letterSpacing: 1.2,
                 color: "#6b6862",
                 textTransform: "uppercase",
+                marginTop: 2,
               }}
             >
               Manager

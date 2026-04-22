@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Ic } from "@/components/primitives";
+import { PaceMark } from "@/components/logo";
 import { createClient } from "@/lib/supabase/client";
 
 function LoginForm() {
@@ -94,30 +94,18 @@ function LoginForm() {
             textDecoration: "none",
           }}
         >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              background: "#0d0e10",
-              color: "#fff",
-              borderRadius: 7,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {Ic.zap(16)}
-          </div>
+          <PaceMark size={32} />
           <div
             style={{
               fontFamily: "var(--font-archivo)",
               fontWeight: 800,
-              fontSize: 18,
-              color: "#0d0e10",
-              letterSpacing: -0.4,
+              fontSize: 22,
+              color: "#02BFAB",
+              letterSpacing: -0.6,
+              lineHeight: 1,
             }}
           >
-            Pace
+            pace
           </div>
         </Link>
 

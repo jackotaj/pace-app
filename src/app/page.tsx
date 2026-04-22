@@ -4,6 +4,7 @@
 
 import Link from "next/link";
 import { Ic } from "@/components/primitives";
+import { PaceMark } from "@/components/logo";
 
 const link: React.CSSProperties = {
   color: "#0d0e10",
@@ -45,32 +46,20 @@ export default function LandingPage() {
         >
           <Link
             href="/"
-            style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
+            style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}
           >
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                background: "#0d0e10",
-                color: "#fff",
-                borderRadius: 6,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {Ic.zap(15)}
-            </div>
+            <PaceMark size={30} />
             <div
               style={{
                 fontFamily: "var(--font-archivo)",
                 fontWeight: 800,
-                fontSize: 18,
-                color: "#0d0e10",
-                letterSpacing: -0.4,
+                fontSize: 22,
+                color: "#02BFAB",
+                letterSpacing: -0.6,
+                lineHeight: 1,
               }}
             >
-              Pace
+              pace
             </div>
           </Link>
           <div className="hidden md:flex" style={{ gap: 28, fontSize: 13, color: "#6b6862" }}>

@@ -8,7 +8,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Ic, SectionHead } from "@/components/primitives";
+import { SectionHead } from "@/components/primitives";
+import { PaceMark } from "@/components/logo";
 
 const TIMEZONES = [
   { id: "America/New_York", label: "Eastern (NY, Miami, Detroit)" },
@@ -169,26 +170,25 @@ export function OnboardFlow({ userEmail }: { userEmail: string }) {
             style={{
               width: 32,
               height: 32,
-              background: "#0d0e10",
-              color: "#fff",
-              borderRadius: 7,
+              background: "transparent",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            {Ic.zap(16)}
+            <PaceMark size={32} />
           </div>
           <div
             style={{
               fontFamily: "var(--font-archivo)",
               fontWeight: 800,
-              fontSize: 18,
-              color: "#0d0e10",
-              letterSpacing: -0.4,
+              fontSize: 22,
+              color: "#02BFAB",
+              letterSpacing: -0.6,
+              lineHeight: 1,
             }}
           >
-            Pace
+            pace
           </div>
         </Link>
 

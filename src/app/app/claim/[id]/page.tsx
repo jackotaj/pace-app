@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { Ic } from "@/components/primitives";
+import { PaceMark } from "@/components/logo";
 
 export default async function ClaimPage({
   params,
@@ -100,30 +100,18 @@ function ClaimShell({ children }: { children: React.ReactNode }) {
           href="/"
           style={{ display: "inline-flex", alignItems: "center", gap: 10, marginBottom: 20, textDecoration: "none" }}
         >
-          <div
-            style={{
-              width: 30,
-              height: 30,
-              background: "#0d0e10",
-              color: "#fff",
-              borderRadius: 7,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {Ic.zap(15)}
-          </div>
+          <PaceMark size={30} />
           <div
             style={{
               fontFamily: "var(--font-archivo)",
               fontWeight: 800,
-              fontSize: 17,
-              color: "#0d0e10",
-              letterSpacing: -0.4,
+              fontSize: 20,
+              color: "#02BFAB",
+              letterSpacing: -0.5,
+              lineHeight: 1,
             }}
           >
-            Pace
+            pace
           </div>
         </Link>
         {children}
