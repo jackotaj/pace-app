@@ -9,12 +9,13 @@ import { createClient } from "@/lib/supabase/client";
 function LoginForm() {
   const params = useSearchParams();
   const next = params.get("next") || "/app/rep";
+  const callbackError = params.get("error");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"email" | "password">("email");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(callbackError);
   const [sent, setSent] = useState(false);
 
   async function submitEmail(e: React.FormEvent) {
