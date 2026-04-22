@@ -218,9 +218,16 @@ export async function POST(req: Request) {
 
   if (autoCommit && toInsert.length > 0) {
     const rowsWithRun = toInsert.map((r) => ({ ...r, ingest_run_id: run?.id }));
-    await admin
-      .from("sales")
-      .upsert(rowsWithRun, { onConflict: "store_id,vin,sold_at_date", ignoreDuplicates: true });
+    // Pre-filtered for duplicates already; plain insert. If a race condition hits
+    // the partial unique index, errors will surface here.
+    const { error: insErr } = await admin.from("sales").insert(rowsWithRun);
+    if (insErr) {
+      await admin.from("ingest_runs").update({
+        status: "errored",
+        error_log: [{ msg: insErr.message }],
+      }).eq("id", run?.id);
+      return NextResponse.json({ error: insErr.message }, { status: 500 });
+    }
   }
 
   return NextResponse.json({

@@ -73,10 +73,11 @@ export async function POST(
 
     let inserted = 0;
     if (toInsert.length > 0) {
-      // Use upsert-like insert with onConflict ignore; the partial unique index handles dedup.
+      // Plain insert; preview already filtered duplicates. Partial unique index will
+      // reject races — caller can retry.
       const { data, error } = await admin
         .from("sales")
-        .upsert(toInsert, { onConflict: "store_id,vin,sold_at_date", ignoreDuplicates: true })
+        .insert(toInsert)
         .select("id");
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       inserted = data?.length ?? 0;
