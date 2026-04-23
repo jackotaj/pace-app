@@ -252,7 +252,7 @@ export function IngestFlow({
               >
                 <SummaryCell label="Total" value={run.rows_total} />
                 <SummaryCell label="Ready" value={run.rows_added} color="#17a058" />
-                <SummaryCell label="Duplicate" value={run.rows_skipped} color="#b8842a" />
+                <SummaryCell label="Duplicate" value={run.rows_skipped} color="#d88a1a" />
                 <SummaryCell label="Errors" value={run.rows_errored} color="#d43f3a" />
               </div>
 
@@ -304,7 +304,7 @@ export function IngestFlow({
                       {r.errors.length > 0 ? (
                         <span style={{ color: "#d43f3a", fontWeight: 600 }}>Error</span>
                       ) : r.duplicate ? (
-                        <span style={{ color: "#b8842a", fontWeight: 600 }}>Duplicate</span>
+                        <span style={{ color: "#d88a1a", fontWeight: 600 }}>Duplicate</span>
                       ) : (
                         <span style={{ color: "#17a058", fontWeight: 600 }}>Ready</span>
                       )}

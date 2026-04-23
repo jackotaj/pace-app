@@ -87,7 +87,8 @@ export function LeaderboardTab() {
         {sorted.slice(0, 3).map((rep, i) => {
           const order = [1, 0, 2][i];
           const h = [80, 110, 68][i];
-          const bg = i === 0 ? "#b8842a" : i === 1 ? "#8a8680" : "#b8621a";
+          // Monochrome podium with teal for 1st — "premium leader" read without gold-medal cliché
+          const bg = i === 0 ? "#0d0e10" : i === 1 ? "#6b6862" : "#9a968d";
           return (
             <div
               key={rep.id}
@@ -125,6 +126,8 @@ export function LeaderboardTab() {
                   alignItems: "center",
                   justifyContent: "flex-start",
                   paddingTop: 10,
+                  // Teal rim on 1st-place block for champion accent
+                  boxShadow: i === 0 ? "inset 0 3px 0 #02BFAB" : "none",
                 }}
               >
                 <div
@@ -175,7 +178,7 @@ export function LeaderboardTab() {
                 gap: 12,
                 padding: "12px 14px",
                 borderTop: i === 0 ? "none" : "1px solid #e6e3da",
-                background: isYou ? "#f4ebd6" : "#ffffff",
+                background: isYou ? "#d6f5f0" : "#ffffff",
                 transition: "all .3s",
               }}
             >
@@ -185,7 +188,7 @@ export function LeaderboardTab() {
                   fontFamily: "var(--font-archivo)",
                   fontSize: 13,
                   fontWeight: 800,
-                  color: i < 3 ? "#b8842a" : "#9a968d",
+                  color: i < 3 ? "#0d0e10" : "#9a968d",
                   fontVariantNumeric: "tabular-nums",
                   textAlign: "center",
                 }}
@@ -209,7 +212,7 @@ export function LeaderboardTab() {
                   {isYou && (
                     <span
                       style={{
-                        background: "#b8842a",
+                        background: "#02BFAB",
                         color: "#fff",
                         fontFamily: "var(--font-archivo)",
                         fontSize: 8,

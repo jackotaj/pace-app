@@ -19,11 +19,7 @@
   --color-amber: #d88a1a;
   --color-amber-soft: #faefdc;
 
-  /* trophy / streak */
-  --color-gold: #b8842a;
-  --color-gold-soft: #f4ebd6;
-
-  /* brand — Pace teal */
+  /* brand — Pace teal (single accent; retired gold #b8842a) */
   --color-brand: #02bfab;
   --color-brand-dark: #019a8a;
   --color-brand-soft: #d6f5f0;

@@ -150,11 +150,9 @@ export default function LandingPage() {
             <br />
             their number.
             <br />
-            <span style={{ color: "#b8842a" }}>
-              Without you
-              <br />
-              nagging.
-            </span>
+            Without you
+            <br />
+            nagging.
           </div>
           <div
             style={{
@@ -562,7 +560,7 @@ export default function LandingPage() {
               { l: "14", sub: "live contacts · 30%", color: "#fff", hl: false },
               { l: "2", sub: "appts set · 15%", color: "#fff", hl: false },
               { l: "1.3", sub: "shown · 65%", color: "#fff", hl: false },
-              { l: "1", sub: "SALE · 20%", color: "#b8842a", hl: true },
+              { l: "1", sub: "SALE · 20%", color: "#02BFAB", hl: true },
             ].map((r, i, a) => (
               <div
                 key={i}
@@ -591,7 +589,7 @@ export default function LandingPage() {
                 <div
                   style={{
                     fontSize: 12,
-                    color: r.hl ? "#b8842a" : "rgba(255,255,255,.7)",
+                    color: r.hl ? "#02BFAB" : "rgba(255,255,255,.7)",
                     letterSpacing: r.hl ? 2 : 0,
                     fontWeight: r.hl ? 700 : 400,
                     textTransform: r.hl ? "uppercase" : "none",
@@ -634,7 +632,7 @@ export default function LandingPage() {
                     fontSize: 48,
                     fontWeight: 800,
                     letterSpacing: -2,
-                    color: "#b8842a",
+                    color: "#02BFAB",
                     lineHeight: 1,
                   }}
                 >
@@ -807,7 +805,7 @@ export default function LandingPage() {
                         color: t.highlight ? "rgba(255,255,255,.85)" : "#0d0e10",
                       }}
                     >
-                      <span style={{ color: t.highlight ? "#b8842a" : "#17a058", fontWeight: 700 }}>✓</span>
+                      <span style={{ color: t.highlight ? "#02BFAB" : "#17a058", fontWeight: 700 }}>✓</span>
                       {f}
                     </li>
                   ))}
@@ -817,7 +815,7 @@ export default function LandingPage() {
                     marginTop: 24,
                     width: "100%",
                     padding: "12px",
-                    background: t.highlight ? "#b8842a" : "#0d0e10",
+                    background: t.highlight ? "#02BFAB" : "#0d0e10",
                     color: "#fff",
                     border: "none",
                     borderRadius: 10,

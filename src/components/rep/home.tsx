@@ -143,7 +143,7 @@ function StreakChip({ streak }: { streak: number }) {
     <div
       style={{
         flex: 1,
-        background: "#f4ebd6",
+        background: "#d6f5f0",
         borderRadius: 12,
         padding: "10px 12px",
         display: "flex",
@@ -151,9 +151,9 @@ function StreakChip({ streak }: { streak: number }) {
         gap: 10,
       }}
     >
-      <div style={{ color: "#b8842a" }}>{Ic.flame(18)}</div>
+      <div style={{ color: "#019A8A" }}>{Ic.flame(18)}</div>
       <div>
-        <div style={{ fontFamily: "var(--font-archivo)", fontSize: 9, fontWeight: 700, letterSpacing: 1.4, color: "#b8842a", textTransform: "uppercase" }}>
+        <div style={{ fontFamily: "var(--font-archivo)", fontSize: 9, fontWeight: 700, letterSpacing: 1.4, color: "#019A8A", textTransform: "uppercase" }}>
           Streak
         </div>
         <div style={{ fontFamily: "var(--font-archivo)", fontSize: 16, fontWeight: 800, color: "#0d0e10", lineHeight: 1, marginTop: 2 }}>

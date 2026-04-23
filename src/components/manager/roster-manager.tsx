@@ -216,8 +216,8 @@ function RosterRow({
             style={{
               display: "inline-flex",
               padding: "4px 8px",
-              background: "#f4ebd6",
-              color: "#b8842a",
+              background: "#d6f5f0",
+              color: "#019A8A",
               borderRadius: 4,
               fontSize: 10,
               fontWeight: 700,

@@ -10,7 +10,7 @@ import type { Rep } from "@/lib/pace";
 type PaceStatus = "ahead" | "onpace" | "behind";
 const PACE_CFG: Record<PaceStatus, { bg: string; fg: string; label: string }> = {
   ahead: { bg: "#e5f5ec", fg: "#17a058", label: "AHEAD" },
-  onpace: { bg: "#f4ebd6", fg: "#b8842a", label: "ON PACE" },
+  onpace: { bg: "#faefdc", fg: "#d88a1a", label: "ON PACE" },
   behind: { bg: "#fbe9e7", fg: "#d43f3a", label: "BEHIND" },
 };
 const PILL_SIZES = {
@@ -326,7 +326,7 @@ export function Avatar({ rep, size = 32 }: { rep: Pick<Rep, "color" | "short">; 
 // ── Confetti ─────────────────────────────────────────────────
 export function Confetti({ active }: { active: boolean }) {
   if (!active) return null;
-  const colors = ["#17a058", "#b8842a", "#d43f3a", "#0d0e10", "#6b4fb8"];
+  const colors = ["#17a058", "#02BFAB", "#d43f3a", "#0d0e10", "#6b4fb8"];
   const pieces = Array.from({ length: 80 }, (_, i) => {
     const left = Math.random() * 100;
     const delay = Math.random() * 0.6;

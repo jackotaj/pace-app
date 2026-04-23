@@ -59,7 +59,7 @@ export function ProfileTab() {
           gap: 16,
         }}
       >
-        <div style={{ color: "#b8842a" }}>{Ic.flame(34)}</div>
+        <div style={{ color: "#02BFAB" }}>{Ic.flame(34)}</div>
         <div style={{ flex: 1 }}>
           <div
             style={{
@@ -104,8 +104,8 @@ export function ProfileTab() {
               <div
                 key={b.id}
                 style={{
-                  background: earned ? "#f4ebd6" : "#f7f5ef",
-                  border: `1px solid ${earned ? "#b8842a40" : "#e6e3da"}`,
+                  background: earned ? "#d6f5f0" : "#f7f5ef",
+                  border: `1px solid ${earned ? "#02BFAB40" : "#e6e3da"}`,
                   borderRadius: 12,
                   padding: "12px 10px",
                   textAlign: "center",
@@ -118,7 +118,7 @@ export function ProfileTab() {
                     height: 32,
                     borderRadius: 16,
                     margin: "0 auto 6px",
-                    background: earned ? "#b8842a" : "#d8d4c7",
+                    background: earned ? "#02BFAB" : "#d8d4c7",
                     color: "#fff",
                     display: "flex",
                     alignItems: "center",
