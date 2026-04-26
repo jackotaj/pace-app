@@ -27,6 +27,10 @@ export interface StoreSnapshot {
   yourRepId: string | null;
   yourRole: "admin" | "manager" | "rep" | null;
   repCount: number;
+  // True when the user has BOTH a manager-or-admin role AND a rep seat in
+  // this store. The AppHeader shows the manager↔rep toggle only when true.
+  canSwitch: boolean;
+  userEmail: string | null;
 }
 
 function todayInTz(tz: string): string {
@@ -99,9 +103,14 @@ export async function loadStoreSnapshotById(
   const monthStartDate = today.slice(0, 7) + "-01";
   const monthStartISO = `${monthStartDate}T00:00:00Z`;
 
-  // Determine caller's role in this store
+  // Determine caller's role in this store + whether they can switch views.
   let yourRole: "admin" | "manager" | "rep" | null = null;
+  let canSwitch = false;
+  let userEmail: string | null = null;
   if (userId) {
+    const { data: u } = await supabase.auth.admin.getUserById(userId);
+    userEmail = u.user?.email ?? null;
+
     const { data: m } = await supabase
       .from("memberships")
       .select("role, store_id")
@@ -110,6 +119,22 @@ export async function loadStoreSnapshotById(
     const repMem = m?.find((x) => x.store_id === storeId && x.role === "rep");
     const mgrMem = m?.find((x) => x.role === "admin" || x.role === "manager");
     yourRole = repMem ? "rep" : mgrMem ? (mgrMem.role as "admin" | "manager") : null;
+
+    // Cross-role: has manager/admin AND ALSO a rep seat in this store
+    // (either via 'rep' membership OR via reps.user_id linkage)
+    const hasMgr = !!mgrMem;
+    let hasRepSeat = !!repMem;
+    if (hasMgr && !hasRepSeat) {
+      const { data: linkedRep } = await supabase
+        .from("reps")
+        .select("id")
+        .eq("store_id", storeId)
+        .eq("user_id", userId)
+        .eq("active", true)
+        .maybeSingle();
+      hasRepSeat = !!linkedRep;
+    }
+    canSwitch = hasMgr && hasRepSeat;
   }
 
   const { data: reps } = await supabase
@@ -134,6 +159,8 @@ export async function loadStoreSnapshotById(
       yourRepId: null,
       yourRole,
       repCount: 0,
+      canSwitch,
+      userEmail,
     };
   }
 
@@ -233,6 +260,10 @@ export async function loadStoreSnapshotById(
 
   // Determine "you" — the rep row whose user_id == authed userId, if any.
   const you = repsWithPace.find((r) => r.isYou);
+  // If we found a linked rep but didn't have a 'rep' membership, the user is
+  // still effectively a rep — update canSwitch.
+  const finalCanSwitch =
+    canSwitch || (yourRole !== "rep" && !!you && !!yourRole);
   return {
     storeId: store.id,
     storeName: store.name,
@@ -244,5 +275,7 @@ export async function loadStoreSnapshotById(
     yourRepId: you?.id ?? null,
     yourRole,
     repCount: repsWithPace.length,
+    canSwitch: finalCanSwitch,
+    userEmail,
   };
 }

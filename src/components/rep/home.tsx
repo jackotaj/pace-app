@@ -25,7 +25,7 @@ function RepHeader({ rep, month }: { rep: Rep; month: { label: string; day: numb
   return (
     <div
       style={{
-        padding: "4px 22px 14px",
+        paddingBottom: 14,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -214,14 +214,19 @@ export function RepHomeScoreboard({
   const a = yourRep.activityToday;
   const isDemo = !ctx; // when server provides no ctx, we're in the unauthed demo mode
 
+  // Manual log button shown only when explicitly allowed (default off — data
+  // arrives from DMS daily reports, not manual entry).
+  const allowManual = process.env.NEXT_PUBLIC_ALLOW_MANUAL_ACTIVITY === "1";
+
   return (
     <>
       <RepHeader rep={yourRep} month={month} />
 
+      {/* On desktop: hero card + today-funnel sit side-by-side. On mobile: stacked. */}
+      <div className="lg:grid lg:grid-cols-2 lg:gap-5">
       {/* HERO — dark pace card */}
       <div
         style={{
-          margin: "0 18px",
           background: "#0d0e10",
           borderRadius: 20,
           padding: "22px 22px 20px",
@@ -324,15 +329,16 @@ export function RepHomeScoreboard({
         </div>
       </div>
 
-      {/* TODAY YOU NEED — funnel */}
+      {/* TODAY YOU NEED — funnel — second column on desktop */}
       <div
         style={{
-          margin: "18px 18px 0",
+          marginTop: 18,
           background: "#ffffff",
           border: "1px solid #e6e3da",
           borderRadius: 20,
           padding: "18px 18px 10px",
         }}
+        className="lg:!mt-0"
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <SectionHead>Today you need</SectionHead>
@@ -350,58 +356,66 @@ export function RepHomeScoreboard({
         <FunnelSteps daily={p.daily} actual={a} />
       </div>
 
-      <button
-        onClick={onLogActivity}
-        style={{
-          margin: "16px 18px 0",
-          width: "calc(100% - 36px)",
-          height: 56,
-          background: "#0d0e10",
-          color: "#fff",
-          border: "none",
-          borderRadius: 16,
-          fontFamily: "var(--font-archivo)",
-          fontWeight: 700,
-          fontSize: 15,
-          letterSpacing: 1.2,
-          textTransform: "uppercase",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 10,
-        }}
-      >
-        {Ic.zap(16)} Log activity
-      </button>
+      </div> {/* end of lg:grid wrapper */}
 
-      <div style={{ display: "flex", gap: 10, margin: "12px 18px 24px" }}>
+      {/* Log activity (manual fallback — hidden by default, off behind a feature flag) */}
+      {allowManual && (
+        <button
+          onClick={onLogActivity}
+          style={{
+            marginTop: 16,
+            width: "100%",
+            height: 56,
+            background: "#0d0e10",
+            color: "#fff",
+            border: "none",
+            borderRadius: 16,
+            fontFamily: "var(--font-archivo)",
+            fontWeight: 700,
+            fontSize: 15,
+            letterSpacing: 1.2,
+            textTransform: "uppercase",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+          }}
+        >
+          {Ic.zap(16)} Log activity
+        </button>
+      )}
+
+      <div
+        style={{ display: "flex", gap: 10, marginTop: 12, marginBottom: 24 }}
+        className="lg:max-w-[640px]"
+      >
         <StreakChip streak={yourRep.streak} />
         <RankChip onClick={() => onSwitchTab?.("board")} />
       </div>
 
       {/* Demo trigger — only in unauthed demo mode (no real store ctx present). */}
       {isDemo && (
-      <button
-        onClick={() => addSale(yourRep.id, 2400, "used")}
-        style={{
-          margin: "0 18px 24px",
-          width: "calc(100% - 36px)",
-          height: 42,
-          background: "transparent",
-          color: "#6b6862",
-          border: "1px dashed #d8d4c7",
-          borderRadius: 12,
-          fontFamily: "var(--font-archivo)",
-          fontSize: 11,
-          fontWeight: 600,
-          letterSpacing: 1.2,
-          textTransform: "uppercase",
-          cursor: "pointer",
-        }}
-      >
-        Demo: log a sale
-      </button>
+        <button
+          onClick={() => addSale(yourRep.id, 2400, "used")}
+          style={{
+            marginBottom: 24,
+            width: "100%",
+            height: 42,
+            background: "transparent",
+            color: "#6b6862",
+            border: "1px dashed #d8d4c7",
+            borderRadius: 12,
+            fontFamily: "var(--font-archivo)",
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: 1.2,
+            textTransform: "uppercase",
+            cursor: "pointer",
+          }}
+        >
+          Demo: log a sale
+        </button>
       )}
     </>
   );

@@ -1,9 +1,16 @@
-// POST /api/stores/[id]/ingest/csv — upload CSV, parse via shared normalizer,
-// produce a preview ingest_run (status='previewing'). No rows committed yet.
+// POST /api/stores/[id]/ingest/csv — upload CSV, auto-detect format
+// (sales detail vs daily activity), parse via shared normalizer, produce a
+// preview ingest_run (status='previewing'). No rows committed yet.
 
 import { NextResponse } from "next/server";
 import { requireManagerOfStore, UnauthorizedError } from "@/lib/supabase/tenancy";
-import { normalizeSalesCsv, type RepLite } from "@/lib/ingest";
+import {
+  detectFormat,
+  normalizeActivityCsv,
+  normalizeSalesCsv,
+  type RepLite,
+} from "@/lib/ingest";
+import { parseCsv } from "@/lib/csv";
 
 export async function POST(
   req: Request,
@@ -26,7 +33,56 @@ export async function POST(
       .eq("store_id", store.id)
       .eq("active", true);
 
-    // Pull existing dedup keys
+    // Detect what kind of report this is from headers alone.
+    const headers = parseCsv(csvText)[0] ?? [];
+    const format = detectFormat(headers);
+
+    if (format === "activity_daily") {
+      // Pull existing (rep_id, activity_date) keys for duplicate-tagging.
+      const { data: existing } = await admin
+        .from("activities")
+        .select("rep_id, activity_date")
+        .eq("store_id", store.id);
+      const existingKeys = new Set<string>(
+        (existing ?? []).map((a) => `${a.rep_id}|${a.activity_date}`),
+      );
+
+      const { rows, counts } = normalizeActivityCsv({
+        csvText,
+        reps: (reps ?? []) as RepLite[],
+        existingKeys,
+      });
+
+      const { data: run, error: runErr } = await admin
+        .from("ingest_runs")
+        .insert({
+          store_id: store.id,
+          source: "csv_upload",
+          status: "previewing",
+          triggered_by: user.id,
+          filename: file.name,
+          rows_total: counts.total,
+          rows_added: counts.ready,
+          rows_skipped: counts.duplicate,
+          rows_errored: counts.errored,
+          preview: rows,
+        })
+        .select("id, status, rows_total, rows_added, rows_skipped, rows_errored")
+        .single();
+
+      if (runErr) return NextResponse.json({ error: runErr.message }, { status: 500 });
+
+      return NextResponse.json({
+        data: {
+          ingest_run: run,
+          format,
+          counts,
+          preview_sample: rows.slice(0, 12),
+        },
+      });
+    }
+
+    // Sales path (vinsolutions_detail OR generic_per_deal)
     const { data: existing } = await admin
       .from("sales")
       .select("deal_number, sale_id, vin, sold_at_date")
@@ -42,7 +98,7 @@ export async function POST(
       if (s.vin && s.sold_at_date) vinDates.add(`${s.vin}|${s.sold_at_date}`);
     }
 
-    const { format, rows, counts } = normalizeSalesCsv({
+    const result = normalizeSalesCsv({
       csvText,
       reps: (reps ?? []) as RepLite[],
       existingKeys: { deals, saleIds, vinDates },
@@ -56,11 +112,11 @@ export async function POST(
         status: "previewing",
         triggered_by: user.id,
         filename: file.name,
-        rows_total: counts.total,
-        rows_added: counts.ready,
-        rows_skipped: counts.duplicate + counts.filtered,
-        rows_errored: counts.errored,
-        preview: rows,
+        rows_total: result.counts.total,
+        rows_added: result.counts.ready,
+        rows_skipped: result.counts.duplicate + result.counts.filtered,
+        rows_errored: result.counts.errored,
+        preview: result.rows,
       })
       .select("id, status, rows_total, rows_added, rows_skipped, rows_errored")
       .single();
@@ -70,9 +126,9 @@ export async function POST(
     return NextResponse.json({
       data: {
         ingest_run: run,
-        format,
-        counts,
-        preview_sample: rows.slice(0, 12),
+        format: result.format,
+        counts: result.counts,
+        preview_sample: result.rows.slice(0, 12),
       },
     });
   } catch (e) {

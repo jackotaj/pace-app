@@ -3,7 +3,13 @@
 
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { normalizeSalesCsv, type RepLite } from "@/lib/ingest";
+import {
+  detectFormat,
+  normalizeActivityCsv,
+  normalizeSalesCsv,
+  type RepLite,
+} from "@/lib/ingest";
+import { parseCsv } from "@/lib/csv";
 
 interface InboundAttachment {
   filename?: string;
@@ -69,6 +75,81 @@ export async function POST(req: Request) {
     .eq("store_id", store.id)
     .eq("active", true);
 
+  // Auto-detect format from headers — sales detail vs daily activity.
+  const headers = parseCsv(csvText)[0] ?? [];
+  const detectedFormat = detectFormat(headers);
+
+  if (detectedFormat === "activity_daily") {
+    const { data: existing } = await admin
+      .from("activities")
+      .select("rep_id, activity_date")
+      .eq("store_id", store.id);
+    const existingKeys = new Set<string>(
+      (existing ?? []).map((a) => `${a.rep_id}|${a.activity_date}`),
+    );
+
+    const { rows, counts } = normalizeActivityCsv({
+      csvText,
+      reps: (reps ?? []) as RepLite[],
+      existingKeys,
+    });
+
+    const autoCommit = counts.errored === 0;
+    const status = autoCommit ? "committed" : "previewing";
+
+    const { data: run } = await admin
+      .from("ingest_runs")
+      .insert({
+        store_id: store.id,
+        source: "email",
+        status,
+        from_email: body.from ?? null,
+        filename: csvAttachment?.filename ?? "inline.csv",
+        rows_total: counts.total,
+        rows_added: autoCommit ? counts.ready + counts.duplicate : 0,
+        rows_skipped: 0,
+        rows_errored: counts.errored,
+        committed_at: autoCommit ? new Date().toISOString() : null,
+        preview: autoCommit ? null : rows,
+        error_log: rows
+          .filter((r) => r.errors.length > 0)
+          .map((r) => ({ row: r.row, msgs: r.errors })),
+      })
+      .select("id, status")
+      .single();
+
+    if (autoCommit) {
+      const toUpsert = rows
+        .filter((r) => r.errors.length === 0 && r.rep_id && r.activity_date)
+        .map((r) => ({
+          rep_id: r.rep_id!,
+          store_id: store.id,
+          activity_date: r.activity_date!,
+          calls: r.calls,
+          texts: r.texts,
+          appts_set: r.appts_set,
+          appts_shown: r.appts_shown,
+        }));
+      if (toUpsert.length > 0) {
+        const { error: upErr } = await admin
+          .from("activities")
+          .upsert(toUpsert, { onConflict: "rep_id,activity_date" });
+        if (upErr) {
+          await admin
+            .from("ingest_runs")
+            .update({ status: "errored", error_log: [{ msg: upErr.message }] })
+            .eq("id", run?.id);
+          return NextResponse.json({ error: upErr.message }, { status: 500 });
+        }
+      }
+    }
+
+    return NextResponse.json({
+      data: { ingest_run_id: run?.id, format: detectedFormat, status, ...counts },
+    });
+  }
+
+  // Sales path
   const { data: existing } = await admin
     .from("sales")
     .select("deal_number, sale_id, vin, sold_at_date")

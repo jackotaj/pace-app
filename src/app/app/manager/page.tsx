@@ -23,8 +23,9 @@ export default async function ManagerAppPage() {
   const snapshot = await loadMyStoreSnapshot();
   if (!snapshot) redirect("/app/onboard");
 
-  // Reps hitting /app/manager should just go to their rep home.
-  if (snapshot.yourRole === "rep") redirect("/app/rep");
+  // Pure reps (no manager role) hitting /app/manager get sent to their pace.
+  // Cross-role users (canSwitch=true) stay — they're allowed to view both.
+  if (snapshot.yourRole === "rep" && !snapshot.canSwitch) redirect("/app/rep");
 
   const ctx = {
     storeId: snapshot.storeId,
@@ -34,6 +35,8 @@ export default async function ManagerAppPage() {
     storeState: snapshot.storeState,
     yourRole: snapshot.yourRole,
     repCount: snapshot.repCount,
+    canSwitch: snapshot.canSwitch,
+    userEmail: snapshot.userEmail,
   };
 
   return (

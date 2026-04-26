@@ -27,7 +27,7 @@ export function ProfileTab() {
 
   return (
     <>
-      <div style={{ padding: "4px 22px 12px", display: "flex", alignItems: "center", gap: 14 }}>
+      <div style={{ paddingBottom: 12, display: "flex", alignItems: "center", gap: 14 }}>
         <Avatar rep={yourRep} size={56} />
         <div style={{ flex: 1 }}>
           <div
@@ -49,7 +49,7 @@ export function ProfileTab() {
 
       <div
         style={{
-          margin: "0 18px 14px",
+          marginBottom: 14,
           padding: "18px 18px",
           background: "#0d0e10",
           color: "#fff",
@@ -93,7 +93,7 @@ export function ProfileTab() {
         </div>
       </div>
 
-      <div style={{ margin: "0 18px 14px" }}>
+      <div style={{ marginBottom: 14 }}>
         <SectionHead style={{ marginBottom: 10 }}>
           Badges · {yourRep.badges.length}/{ALL_BADGES.length}
         </SectionHead>
@@ -150,7 +150,7 @@ export function ProfileTab() {
 
       {/* Demo rep switcher — only shown in unauthed demo mode. */}
       {showDemoSwitcher && (
-      <div style={{ margin: "0 18px 18px", padding: "14px 14px", background: "#f7f5ef", borderRadius: 12 }}>
+      <div style={{ marginBottom: 18, padding: "14px 14px", background: "#f7f5ef", borderRadius: 12 }}>
         <SectionHead style={{ marginBottom: 10 }}>Demo · switch rep</SectionHead>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {reps.map((r) => (
@@ -178,7 +178,7 @@ export function ProfileTab() {
 
       {/* Sign out — always available for real users */}
       {!showDemoSwitcher && (
-        <div style={{ margin: "0 18px 18px" }}>
+        <div style={{ marginBottom: 18 }} className="lg:max-w-[420px]">
           <form action="/auth/signout" method="POST">
             <button
               type="submit"

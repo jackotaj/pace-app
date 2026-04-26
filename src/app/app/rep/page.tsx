@@ -43,6 +43,8 @@ export default async function RepAppPage() {
     storeState: snapshot.storeState,
     yourRole: snapshot.yourRole,
     repCount: snapshot.repCount,
+    canSwitch: snapshot.canSwitch,
+    userEmail: snapshot.userEmail,
   };
 
   return (

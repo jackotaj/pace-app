@@ -88,10 +88,58 @@ function buildVehicle(row: Record<string, string>): string {
   return [year, make, model, trim].filter(Boolean).join(" ").trim();
 }
 
-// Detects VinSolutions/Reynolds style detail format (has "Lead Status Type" + "Deal Number").
+// ── Format detection ─────────────────────────────────────────
+// Three formats supported by the ingest pipeline:
+//   1. vinsolutions_detail      — per-deal sales detail (Lead Status Type / Deal Number / Sale ID)
+//   2. activity_daily           — daily activity summary (Calls + Texts + Appts Set + Appts Shown)
+//   3. generic_per_deal         — fallback for plain VIN/sold_at/gross/rep CSVs
+// We auto-detect format by inspecting headers — same shared endpoint handles all.
+
+export type IngestFormat =
+  | "vinsolutions_detail"
+  | "activity_daily"
+  | "generic_per_deal";
+
 function isDetailReport(headers: string[]): boolean {
-  const h = new Set(headers.map((x) => x.toLowerCase()));
+  const h = new Set(headers.map((x) => x.toLowerCase().trim()));
   return h.has("lead status type") || h.has("deal number") || h.has("sale id");
+}
+
+function isActivityReport(headers: string[]): boolean {
+  const h = new Set(headers.map((x) => x.toLowerCase().trim()));
+  // Must have at least one activity-counting column AND a date AND a rep identifier.
+  const hasActivityCol =
+    h.has("calls") ||
+    h.has("outbound calls") ||
+    h.has("phone calls") ||
+    h.has("calls made") ||
+    h.has("texts") ||
+    h.has("text messages") ||
+    h.has("appts set") ||
+    h.has("appointments set") ||
+    h.has("appts shown") ||
+    h.has("appointments shown");
+  const hasDate =
+    h.has("date") ||
+    h.has("activity date") ||
+    h.has("day") ||
+    h.has("report date");
+  const hasRep =
+    h.has("salesperson") ||
+    h.has("sales rep") ||
+    h.has("rep") ||
+    h.has("user") ||
+    h.has("name");
+  // Must NOT be a sales report (those have these markers)
+  const looksLikeSale =
+    h.has("vin") || h.has("sale id") || h.has("deal number") || h.has("front gross");
+  return hasActivityCol && hasDate && hasRep && !looksLikeSale;
+}
+
+export function detectFormat(headers: string[]): IngestFormat {
+  if (isDetailReport(headers)) return "vinsolutions_detail";
+  if (isActivityReport(headers)) return "activity_daily";
+  return "generic_per_deal";
 }
 
 export interface NormalizeInput {
@@ -281,5 +329,163 @@ function skeleton(idx: number, r: Record<string, string>, reason: SaleCandidate[
     skip_reason: reason,
     duplicate: false,
     errors: [],
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Activity ingest (Phase 2 — daily activity reports from DMS/CRM)
+// ─────────────────────────────────────────────────────────────
+
+export interface ActivityCandidate {
+  row: number;
+  rep_id?: string;
+  rep_name_raw: string;
+  matched_rep_name?: string;
+  activity_date: string | null; // YYYY-MM-DD
+  calls: number;
+  texts: number;
+  appts_set: number;
+  appts_shown: number;
+  duplicate: boolean; // already exists in DB for (rep_id, date) — we'll upsert anyway
+  errors: string[];
+}
+
+export interface ActivityNormalizeInput {
+  csvText: string;
+  reps: RepLite[];
+  // (rep_id|date) keys already in DB — used for "duplicate" preview tagging only
+  // (commit step uses upsert by unique constraint, so dups are safe to commit).
+  existingKeys: Set<string>;
+}
+
+export interface ActivityNormalizeResult {
+  format: "activity_daily";
+  rows: ActivityCandidate[];
+  counts: {
+    total: number;
+    ready: number;
+    duplicate: number;
+    errored: number;
+    filtered: number;
+  };
+}
+
+export function normalizeActivityCsv({
+  csvText,
+  reps,
+  existingKeys,
+}: ActivityNormalizeInput): ActivityNormalizeResult {
+  const parsed = parseCsv(csvText);
+  if (parsed.length < 2) {
+    return {
+      format: "activity_daily",
+      rows: [],
+      counts: { total: 0, ready: 0, duplicate: 0, errored: 0, filtered: 0 },
+    };
+  }
+  const rows = toObjects(parsed);
+
+  const byEmail = new Map<string, RepLite>();
+  const byName = new Map<string, RepLite>();
+  for (const r of reps) {
+    if (r.email) byEmail.set(r.email.toLowerCase(), r);
+    byName.set(normalizeName(r.name), r);
+  }
+
+  const out: ActivityCandidate[] = [];
+  let ready = 0,
+    duplicate = 0,
+    errored = 0;
+  // In-file dedup: if same rep+date appears twice, sum the counts (the report
+  // sometimes splits AM/PM rows). Map key = `${rep_id}|${date}`.
+  const merged = new Map<string, ActivityCandidate>();
+
+  rows.forEach((r, idx) => {
+    const errors: string[] = [];
+
+    const repEmail = pick(r, ["email", "rep_email", "salesperson_email"]);
+    const repName = pick(r, [
+      "rep",
+      "rep_name",
+      "salesperson",
+      "salesperson_name",
+      "name",
+      "sales rep",
+      "sales_rep",
+      "sales representative",
+      "sales_representative",
+      "user",
+    ]);
+    const dateRaw = pick(r, [
+      "date",
+      "activity_date",
+      "activity date",
+      "day",
+      "report_date",
+      "report date",
+    ]);
+    const callsRaw =
+      pick(r, ["calls", "outbound calls", "outbound_calls", "phone calls", "phone_calls", "calls made", "calls_made"]) ?? "0";
+    const textsRaw = pick(r, ["texts", "text messages", "text_messages", "sms", "sms sent", "sms_sent"]) ?? "0";
+    const setRaw = pick(r, ["appts set", "appts_set", "appointments set", "appointments_set", "set"]) ?? "0";
+    const shownRaw = pick(r, ["appts shown", "appts_shown", "appointments shown", "appointments_shown", "shown", "showed"]) ?? "0";
+
+    let matchedRep: RepLite | undefined;
+    if (repEmail) matchedRep = byEmail.get(repEmail.toLowerCase());
+    if (!matchedRep && repName) matchedRep = byName.get(normalizeName(repName));
+    if (!matchedRep) errors.push(`Rep not found: ${repName ?? repEmail ?? "(blank)"}`);
+
+    const parsedDate = parseDate(dateRaw);
+    if (!parsedDate) errors.push(`Invalid date: ${dateRaw ?? "(blank)"}`);
+
+    const calls = Math.max(0, Math.floor(parseNum(callsRaw)));
+    const texts = Math.max(0, Math.floor(parseNum(textsRaw)));
+    const appts_set = Math.max(0, Math.floor(parseNum(setRaw)));
+    const appts_shown = Math.max(0, Math.floor(parseNum(shownRaw)));
+
+    const candidate: ActivityCandidate = {
+      row: idx + 2,
+      rep_id: matchedRep?.id,
+      rep_name_raw: repName ?? repEmail ?? "",
+      matched_rep_name: matchedRep?.name,
+      activity_date: parsedDate?.date ?? null,
+      calls,
+      texts,
+      appts_set,
+      appts_shown,
+      duplicate: false,
+      errors,
+    };
+
+    // Merge same-rep-same-date rows (sum counts)
+    if (matchedRep && parsedDate && errors.length === 0) {
+      const key = `${matchedRep.id}|${parsedDate.date}`;
+      const prev = merged.get(key);
+      if (prev) {
+        prev.calls += calls;
+        prev.texts += texts;
+        prev.appts_set += appts_set;
+        prev.appts_shown += appts_shown;
+      } else {
+        candidate.duplicate = existingKeys.has(key);
+        merged.set(key, candidate);
+      }
+    } else {
+      // Errored rows still surfaced in preview
+      out.push(candidate);
+      errored++;
+    }
+  });
+
+  for (const c of merged.values()) {
+    out.push(c);
+    if (c.duplicate) duplicate++;
+    else ready++;
+  }
+
+  return {
+    format: "activity_daily",
+    rows: out,
+    counts: { total: out.length, ready, duplicate, errored, filtered: 0 },
   };
 }

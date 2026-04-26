@@ -20,7 +20,7 @@ export function LeaderboardTab() {
 
   return (
     <>
-      <div style={{ padding: "4px 22px 12px" }}>
+      <div style={{ paddingBottom: 12 }}>
         <div
           style={{
             fontFamily: "var(--font-archivo)",
@@ -47,7 +47,7 @@ export function LeaderboardTab() {
         </div>
       </div>
 
-      <div style={{ margin: "0 18px 16px", background: "#f7f5ef", padding: 4, borderRadius: 10, display: "flex" }}>
+      <div style={{ marginBottom: 16, background: "#f7f5ef", padding: 4, borderRadius: 10, display: "flex" }}>
         {(
           [
             { id: "sold", label: "Units" },
@@ -83,7 +83,7 @@ export function LeaderboardTab() {
       </div>
 
       {/* Podium — top 3 */}
-      <div style={{ margin: "0 18px 16px", display: "flex", gap: 8, alignItems: "flex-end" }}>
+      <div style={{ marginBottom: 16, display: "flex", gap: 8, alignItems: "flex-end" }} className="lg:max-w-[480px]">
         {sorted.slice(0, 3).map((rep, i) => {
           const order = [1, 0, 2][i];
           const h = [80, 110, 68][i];
@@ -159,7 +159,7 @@ export function LeaderboardTab() {
         })}
       </div>
 
-      <div style={{ margin: "0 18px 18px", background: "#ffffff", border: "1px solid #e6e3da", borderRadius: 14, overflow: "hidden" }}>
+      <div style={{ marginBottom: 18, background: "#ffffff", border: "1px solid #e6e3da", borderRadius: 14, overflow: "hidden" }}>
         {sorted.map((rep, i) => {
           const p = computePace(rep);
           const isYou = rep.isYou;

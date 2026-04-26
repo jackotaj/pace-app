@@ -15,6 +15,8 @@ export interface StoreCtx {
   storeState: string | null;
   yourRole: "admin" | "manager" | "rep" | null;
   repCount: number;
+  canSwitch: boolean;
+  userEmail: string | null;
 }
 
 export function StoreHydrator({

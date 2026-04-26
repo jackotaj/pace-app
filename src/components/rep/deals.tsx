@@ -30,7 +30,7 @@ export function DealsTab() {
 
   return (
     <>
-      <div style={{ padding: "4px 22px 14px" }}>
+      <div style={{ paddingBottom: 14 }}>
         <div
           style={{
             fontFamily: "var(--font-archivo)",
@@ -63,7 +63,7 @@ export function DealsTab() {
         </div>
       </div>
 
-      <div style={{ margin: "0 18px 18px", background: "#ffffff", border: "1px solid #e6e3da", borderRadius: 14 }}>
+      <div style={{ marginBottom: 18, background: "#ffffff", border: "1px solid #e6e3da", borderRadius: 14 }}>
         {deals.map((d, i) => (
           <div
             key={d.id}

@@ -20,6 +20,10 @@ export interface StoreCtx {
   storeState: string | null;
   yourRole: "admin" | "manager" | "rep" | null;
   repCount: number;
+  // Cross-role: user has both manager-or-admin AND a rep seat in this store.
+  // AppHeader uses this to render the manager↔rep switch.
+  canSwitch: boolean;
+  userEmail: string | null;
 }
 
 interface PaceStore {

@@ -15,7 +15,7 @@ import {
   SectionHead,
   Toast,
 } from "@/components/primitives";
-import { PaceMark } from "@/components/logo";
+// PaceMark moved to AppHeader (single source of truth for the brand mark)
 
 type SortKey = "pace" | "sold" | "gross" | "activity";
 
@@ -283,16 +283,73 @@ export function ManagerDashboard() {
   const hasReps = withPace.length > 0;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "#f7f5ef",
-        fontFamily: "var(--font-inter-tight)",
-        color: "#0d0e10",
-        position: "relative",
-      }}
-    >
+    <>
+      {/* Mobile/tablet fallback — manager dashboard is desktop-first per DESIGN_SPEC §10 */}
+      <div
+        className="lg:hidden flex flex-col items-center justify-center text-center"
+        style={{
+          minHeight: "calc(100dvh - 56px)",
+          padding: "32px 24px",
+          background: "#f7f5ef",
+          gap: 16,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "var(--font-archivo)",
+            fontSize: 22,
+            fontWeight: 800,
+            letterSpacing: -0.5,
+            color: "#0d0e10",
+          }}
+        >
+          Manager view is laptop-first.
+        </div>
+        <div
+          style={{
+            fontSize: 14,
+            color: "#6b6862",
+            lineHeight: 1.5,
+            maxWidth: 320,
+          }}
+        >
+          The roster, KPIs, and coaching prompts need a wider screen. Open Pace
+          on a laptop, or switch to <b style={{ color: "#02BFAB" }}>My pace</b>{" "}
+          if you sell too.
+        </div>
+        {ctx?.canSwitch && (
+          <a
+            href="/app/rep"
+            style={{
+              padding: "12px 20px",
+              background: "#02BFAB",
+              color: "#fff",
+              borderRadius: 10,
+              fontFamily: "var(--font-archivo)",
+              fontWeight: 700,
+              fontSize: 13,
+              letterSpacing: 1.2,
+              textTransform: "uppercase",
+              textDecoration: "none",
+              marginTop: 8,
+            }}
+          >
+            Open my pace →
+          </a>
+        )}
+      </div>
+
+      {/* Desktop dashboard */}
+      <div
+        className="hidden lg:flex"
+        style={{
+          minHeight: "calc(100dvh - 56px)",
+          background: "#f7f5ef",
+          fontFamily: "var(--font-inter-tight)",
+          color: "#0d0e10",
+          position: "relative",
+        }}
+      >
       {/* Sidebar */}
       <div
         style={{
@@ -305,35 +362,19 @@ export function ManagerDashboard() {
           flexDirection: "column",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
-          <PaceMark size={32} />
-          <div>
-            <div
-              style={{
-                fontFamily: "var(--font-archivo)",
-                fontWeight: 800,
-                fontSize: 18,
-                letterSpacing: -0.4,
-                color: "#02BFAB",
-                lineHeight: 1,
-              }}
-            >
-              pace
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-archivo)",
-                fontSize: 9,
-                fontWeight: 600,
-                letterSpacing: 1.2,
-                color: "#6b6862",
-                textTransform: "uppercase",
-                marginTop: 2,
-              }}
-            >
-              Manager
-            </div>
-          </div>
+        <div
+          style={{
+            fontFamily: "var(--font-archivo)",
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: 1.4,
+            color: "#9a968d",
+            textTransform: "uppercase",
+            marginBottom: 16,
+            paddingLeft: 10,
+          }}
+        >
+          Manager
         </div>
         <ManagerNav />
         <div style={{ marginTop: "auto", paddingTop: 20 }}>
@@ -363,27 +404,6 @@ export function ManagerDashboard() {
               )}
             </div>
           </div>
-          <form action="/auth/signout" method="POST" style={{ marginTop: 8 }}>
-            <button
-              type="submit"
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                borderRadius: 8,
-                border: "1px solid #e6e3da",
-                background: "transparent",
-                color: "#6b6862",
-                fontSize: 11,
-                fontFamily: "var(--font-archivo)",
-                fontWeight: 600,
-                letterSpacing: 1,
-                textTransform: "uppercase",
-                cursor: "pointer",
-              }}
-            >
-              Sign out
-            </button>
-          </form>
         </div>
       </div>
 
@@ -670,6 +690,7 @@ export function ManagerDashboard() {
       <Confetti active={confetti} />
       <Toast toast={toast} />
     </div>
+    </>
   );
 }
 
